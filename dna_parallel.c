@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <omp.h>
 
 // MAX char table (ASCII)
 #define MAX 256
@@ -50,7 +51,7 @@ void openfiles() {
 		exit(EXIT_FAILURE);
 	}
 
-	fout = fopen("outputs/dna.out", "w");
+	fout = fopen("outputs/dna_parallel.out", "w");
 	if (fout == NULL) {
 		perror("fout");
 		exit(EXIT_FAILURE);
@@ -100,7 +101,10 @@ int main(void) {
 
 	fgets(desc_query, 100, fquery);
 	remove_eol(desc_query);
-	while (!feof(fquery)) 
+
+	#pragma omp parallel // criar os times de thread
+	#pragma omp single // somente umas das threads
+	while (!feof(fquery)) // while vai ser executado sequencial
 	{
 		fprintf(fout, "%s\n", desc_query);
 		// read query string
@@ -136,10 +140,15 @@ int main(void) {
 				i += 80;
 			} while (line[0] != '>');
 
-			result = bmhs(bases, strlen(bases), str, strlen(str));
-			if (result > 0) {
-				fprintf(fout, "%s\n%d\n", desc_dna, result);
-				found++;
+			#pragma omp task// Quando a thread unica chegar, vai criar a lista de execucao
+			{
+				result = bmhs(bases, strlen(bases), str, strlen(str));
+				if (result > 0) {
+					#pragma omp critical
+					fprintf(fout, "%s\n%d\n", desc_dna, result);
+					#pragma omp atomic
+					found++;
+				}
 			}
 		}
 

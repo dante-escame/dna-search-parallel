@@ -1,0 +1,5 @@
+*.o
+dna
+dna_parallel
+inputs/
+outputs/
