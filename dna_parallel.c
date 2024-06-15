@@ -56,7 +56,6 @@ void openfiles() {
 		perror("fout");
 		exit(EXIT_FAILURE);
 	}
-
 }
 
 void closefiles() {
@@ -140,18 +139,29 @@ int main(void) {
 				i += 80;
 			} while (line[0] != '>');
 
-			#pragma omp task// Quando a thread unica chegar, vai criar a lista de execucao
+			char *novo_buf = (char *)malloc(100);
+			strcpy(novo_buf, desc_dna);
+
+			char *novo_bases = (char *)malloc(sizeof(char) * 1000001);
+			strcpy(novo_bases, bases);
+
+			char *novo_str = (char *)malloc(sizeof(char) * 1000001);
+			strcpy(novo_str, str);
+
+			#pragma omp task firstprivate(novo_buf) // Quando a thread unica chegar, vai criar a lista de execucao
 			{
-				result = bmhs(bases, strlen(bases), str, strlen(str));
+				result = bmhs(novo_bases, strlen(novo_bases), novo_str, strlen(novo_str));
 				if (result > 0) {
-					#pragma omp critical
-					fprintf(fout, "%s\n%d\n", desc_dna, result);
 					#pragma omp atomic
 					found++;
 				}
+				free(novo_buf);
+				free(novo_bases);
+				free(novo_str);
 			}
 		}
 
+		#pragma omp taskwait
 		if (!found)
 			fprintf(fout, "NOT FOUND\n");
 	}
